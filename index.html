@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overstore · Margine del giorno</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<script>
+  /* =========================================================
+     CONFIGURAZIONE — modifica solo questi valori
+     ========================================================= */
+  const CONFIG = {
+    COSTO_PRODOTTO_PERC: 34.04,   // % del fatturato che se ne va in costo merce
+    SCORPORA_IVA: false,          // true = toglie l'IVA dal fatturato prima del calcolo
+    IVA_PERC: 22
+  };
+</script>
+<style>
+  :root{
+    --bg:#ffffff; --ink:#0a0a0a; --muted:#8a8a8a; --line:#ececec;
+    --cream:#f4efe7; --good:#1f7a45; --bad:#b3261e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+  body{min-height:100vh;display:flex;flex-direction:column}
+
+  .bar{background:var(--ink);color:#fff;text-align:center;font-size:11px;letter-spacing:.18em;
+       text-transform:uppercase;padding:9px 16px;font-weight:500}
+  header{display:flex;justify-content:center;align-items:center;padding:22px 16px;border-bottom:1px solid var(--line)}
+  header img{height:34px;width:auto;display:block}
+  .wordmark{display:none;font-weight:800;letter-spacing:.32em;font-size:22px;text-transform:uppercase}
+
+  main{flex:1;width:100%;max-width:480px;margin:0 auto;padding:32px 16px 40px}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:10px}
+  h1{font-size:22px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;text-align:center;margin-bottom:26px}
+
+  .group{margin-bottom:14px}
+  .label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-bottom:7px}
+  .field{border:1.5px solid var(--ink);display:flex;align-items:center;padding:0 16px;background:#fff}
+  .field span{font-size:22px;font-weight:600;color:var(--muted)}
+  .field input{flex:1;border:0;outline:0;font:inherit;font-size:26px;font-weight:800;padding:15px 10px;
+               background:transparent;color:var(--ink);width:100%;min-width:0}
+  .field input::placeholder{color:#d2d2d2}
+  .field.main input{font-size:34px;padding:19px 10px}
+  .field.main span{font-size:28px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:380px){.row{grid-template-columns:1fr}}
+
+  .result{margin-top:22px;background:var(--cream);padding:30px 22px;text-align:center}
+  .result .lbl{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#6d665c}
+  .result .val{font-size:52px;font-weight:800;letter-spacing:-.02em;margin:8px 0 4px;line-height:1.05}
+  .result .pct{font-size:15px;font-weight:600}
+  .good{color:var(--good)} .bad{color:var(--bad)}
+
+  .lines{margin-top:22px;border-top:1px solid var(--line)}
+  .line{display:flex;justify-content:space-between;padding:13px 2px;border-bottom:1px solid var(--line);font-size:15px}
+  .line b{font-weight:600}
+  .line.sub{color:var(--muted)}
+  .line.tot{font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid var(--ink)}
+
+  footer{text-align:center;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:22px 16px}
+</style>
+</head>
+<body>
+  <div class="bar">Dashboard interna · Margine giornaliero</div>
+  <header>
+    <img src="https://overstore.it/cdn/shop/files/logo_overstore1.png?v=1775301828&width=500" alt="Overstore"
+         onerror="this.style.display='none';document.querySelector('.wordmark').style.display='block'">
+    <div class="wordmark">Overstore</div>
+  </header>
+
+  <main>
+    <div class="eyebrow" id="today"></div>
+    <h1>Margine del giorno</h1>
+
+    <div class="group">
+      <div class="label">Fatturato lordo di oggi</div>
+      <label class="field main"><span>€</span>
+        <input id="rev" type="text" inputmode="decimal" placeholder="0" autocomplete="off" autofocus></label>
+    </div>
+    <div class="row">
+      <div class="group">
+        <div class="label">Resi di oggi</div>
+        <label class="field"><span>€</span>
+          <input id="ret" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></label>
+      </div>
+      <div class="group">
+        <div class="label">Spesa ads di oggi</div>
+        <label class="field"><span>€</span>
+          <input id="ads" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></label>
+      </div>
+    </div>
+
+    <div class="result">
+      <div class="lbl">Ti restano in tasca</div>
+      <div class="val" id="mEur">€ 0</div>
+      <div class="pct" id="mPct">&nbsp;</div>
+    </div>
+
+    <div class="lines">
+      <div class="line"><span>Fatturato lordo</span><b id="lRev">€ 0</b></div>
+      <div class="line"><span>Resi</span><b id="lRet">– € 0</b></div>
+      <div class="line sub"><span id="lNetLbl">Fatturato netto</span><b id="lNet">€ 0</b></div>
+      <div class="line"><span id="lCogsLbl">Costo prodotto</span><b id="lCogs">– € 0</b></div>
+      <div class="line"><span>Spesa ads</span><b id="lAds">– € 0</b></div>
+      <div class="line tot"><span>Margine</span><b id="lMar">€ 0</b></div>
+    </div>
+  </main>
+
+  <footer>Overstore Novara</footer>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const eur = n => n.toLocaleString('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:2});
+  const val = id => { let n = parseFloat($(id).value.replace(/\./g,'').replace(',', '.')); return isFinite(n) && n > 0 ? n : 0; };
+
+  $('today').textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+  $('lCogsLbl').textContent = 'Costo prodotto (' + CONFIG.COSTO_PRODOTTO_PERC.toLocaleString('it-IT') + '%)';
+  if (CONFIG.SCORPORA_IVA) $('lNetLbl').textContent = 'Fatturato netto (resi e IVA esclusi)';
+
+  function calc(){
+    const rev = val('rev'), ret = val('ret'), ads = val('ads');
+    const ivaF = CONFIG.SCORPORA_IVA ? (1 + CONFIG.IVA_PERC/100) : 1;
+    const net  = (rev - ret) / ivaF;
+    const cogs = (rev / ivaF) * CONFIG.COSTO_PRODOTTO_PERC / 100;   // % sul fatturato lordo
+    const mar  = net - cogs - ads;
+    const pct  = net > 0 ? mar / net * 100 : 0;
+    const any  = rev || ret || ads;
+    const cls  = !any ? '' : (mar >= 0 ? 'good' : 'bad');
+
+    $('mEur').textContent = eur(mar);
+    $('mEur').className = 'val ' + cls;
+    $('mPct').textContent = net > 0 ? pct.toLocaleString('it-IT',{maximumFractionDigits:1}) + '% del fatturato netto' : '\u00a0';
+    $('mPct').className = 'pct ' + cls;
+    $('lRev').textContent = eur(rev);
+    $('lRet').textContent = '– ' + eur(ret);
+    $('lNet').textContent = eur(net);
+    $('lCogs').textContent = '– ' + eur(cogs);
+    $('lAds').textContent = '– ' + eur(ads);
+    $('lMar').textContent = eur(mar);
+    $('lMar').className = cls;
+  }
+  ['rev','ret','ads'].forEach(id => $(id).addEventListener('input', calc));
+  calc();
+</script>
+</body>
+</html>
